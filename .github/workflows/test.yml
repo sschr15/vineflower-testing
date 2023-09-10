@@ -46,14 +46,14 @@ jobs:
       - name: Load latest MC information
         run: |
           curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -c '.versions[0]' > latest.json
-          mcversion=$(jq -r '.id' latest.json)
+          export MC_VERSION=$(jq -r '.id' latest.json)
           curl -s $(jq -r '.url' latest.json) > mcinfo.json
       - name: Identify libraries
         run: |
-          echo mcinfo.json | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
+          cat mcinfo.json | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
       - name: Retrieve remapped MC jar
         run: |
-          MC-Remapper remap client $mcversion --output remapped.jar
+          MC-Remapper remap client $MC_VERSION --output remapped.jar
       - name: Decompile Minecraft
         run: |
           mkdir -p gradle-project/src/main/java
