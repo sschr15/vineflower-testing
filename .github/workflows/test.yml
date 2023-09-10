@@ -45,7 +45,7 @@ jobs:
           export MC_VERSION=$(jq -r '.id' latest.json)
           curl -s $(jq -r '.url' latest.json) > mcinfo.json
           cat mcinfo.json | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
-          MC-Remapper remap client $MC_VERSION --output remapped.jar
+          MC-Remapper client $MC_VERSION --output remapped.jar
           mkdir -p gradle-project/src/main/java
           java -jar vineflower/build/libs/vineflower-*+local.jar remapped.jar gradle-project/src/main/java
           cd gradle-project/
