@@ -16,7 +16,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Clone MC Remapper
