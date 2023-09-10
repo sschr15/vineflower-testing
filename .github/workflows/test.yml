@@ -1,0 +1,68 @@
+name: Test Minecraft recompilation
+on: 
+  workflow_dispatch:
+    inputs:
+      vf_branch:
+        description: 'Vineflower branch to test'
+        required: true
+        default: 'develop/1.10.0'
+        type: string
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Clone MC Remapper
+        uses: actions/checkout@v3
+        with:
+          repository: HeartPattern/MC-Remapper
+          path: remapper
+      - name: Build MC Remapper
+        run: |
+          cd remapper
+          ./gradlew installDist
+          export PATH=$PATH:$(pwd)/build/install/MC-Remapper/bin
+          cd ..
+      - name: Clone Vineflower
+        uses: actions/checkout@v3
+        with:
+          repository: Vineflower/Vineflower
+          ref: ${{ github.event.inputs.vf_branch }}
+          path: vineflower
+      - name: Build Vineflower
+        run: |
+          cd vineflower
+          ./gradlew build
+          cd ..
+      - name: Load latest MC information
+        uses: sergeysova/jq-action@v2
+        id: mcinfo
+        with:
+          cmd: |
+            curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -c '.versions[0]'
+      - name: Identify libraries
+        uses: sergeysova/jq-action@v2
+        with:
+          cmd: |
+            echo ${{ steps.mcinfo.outputs.stdout }} | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
+      - name: Retrieve remapped MC jar
+        uses: sergeysova/jq-action@v2
+        with:
+          cmd: |
+            MC-Remapper remap client $(echo ${{ steps.mcinfo.outputs.stdout }} | jq -r '.id') --output remapped.jar
+      - name: Decompile Minecraft
+        run: |
+          mkdir -p gradle-project/src/main/java
+          java -jar vineflower/build/libs/vineflower-*+local.jar remapped.jar gradle-project/src/main/java
+      - name: Attempt build with gradle
+        run: |
+          cd gradle-project/
+          chmod +x gradlew
+          ./gradlew build --scan

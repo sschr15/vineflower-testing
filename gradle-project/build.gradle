@@ -1,0 +1,18 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name 'Minecraft Libs'
+        url 'https://libraries.minecraft.net/'
+    }
+}
+
+dependencies {
+    def mcDeps = file('../libraries.txt').readLines()
+    mcDeps.each { dep ->
+        implementation dep
+    }
+}
