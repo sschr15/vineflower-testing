@@ -52,10 +52,8 @@ jobs:
         run: |
           echo mcinfo.json | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
       - name: Retrieve remapped MC jar
-        uses: sergeysova/jq-action@v2
-        with:
-          cmd: |
-            MC-Remapper remap client $mcversion --output remapped.jar
+        run: |
+          MC-Remapper remap client $mcversion --output remapped.jar
       - name: Decompile Minecraft
         run: |
           mkdir -p gradle-project/src/main/java
