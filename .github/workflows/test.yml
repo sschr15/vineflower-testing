@@ -16,6 +16,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Set up JQ
+        run: |
+          sudo apt-get install jq
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Clone MC Remapper
@@ -41,21 +44,18 @@ jobs:
           ./gradlew build
           cd ..
       - name: Load latest MC information
-        uses: sergeysova/jq-action@v2
-        id: mcinfo
-        with:
-          cmd: |
-            curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -c '.versions[0]'
+        run: |
+          curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -c '.versions[0]' > latest.json
+          mcversion=$(jq -r '.id' latest.json)
+          curl -s $(jq -r '.url' latest.json) > mcinfo.json
       - name: Identify libraries
-        uses: sergeysova/jq-action@v2
-        with:
-          cmd: |
-            echo ${{ steps.mcinfo.outputs.stdout }} | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
+        run: |
+          echo mcinfo.json | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
       - name: Retrieve remapped MC jar
         uses: sergeysova/jq-action@v2
         with:
           cmd: |
-            MC-Remapper remap client $(echo ${{ steps.mcinfo.outputs.stdout }} | jq -r '.id') --output remapped.jar
+            MC-Remapper remap client $mcversion --output remapped.jar
       - name: Decompile Minecraft
         run: |
           mkdir -p gradle-project/src/main/java
