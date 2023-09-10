@@ -26,40 +26,28 @@ jobs:
         with:
           repository: HeartPattern/MC-Remapper
           path: remapper
-      - name: Build MC Remapper
-        run: |
-          cd remapper
-          ./gradlew installDist
-          export PATH=$PATH:$(pwd)/build/install/MC-Remapper/bin
-          cd ..
       - name: Clone Vineflower
         uses: actions/checkout@v3
         with:
           repository: Vineflower/Vineflower
           ref: ${{ github.event.inputs.vf_branch }}
           path: vineflower
-      - name: Build Vineflower
+      - name: Do everything else
         run: |
+          cd remapper
+          ./gradlew installDist
+          export PATH=$PATH:$(pwd)/build/install/MC-Remapper/bin
+          cd ..
           cd vineflower
           ./gradlew build
           cd ..
-      - name: Load latest MC information
-        run: |
           curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -c '.versions[0]' > latest.json
           export MC_VERSION=$(jq -r '.id' latest.json)
           curl -s $(jq -r '.url' latest.json) > mcinfo.json
-      - name: Identify libraries
-        run: |
           cat mcinfo.json | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
-      - name: Retrieve remapped MC jar
-        run: |
           MC-Remapper remap client $MC_VERSION --output remapped.jar
-      - name: Decompile Minecraft
-        run: |
           mkdir -p gradle-project/src/main/java
           java -jar vineflower/build/libs/vineflower-*+local.jar remapped.jar gradle-project/src/main/java
-      - name: Attempt build with gradle
-        run: |
           cd gradle-project/
           chmod +x gradlew
           ./gradlew build --scan
