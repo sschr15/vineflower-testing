@@ -41,7 +41,7 @@ jobs:
         run: |
           cd vineflower
           # Setting the STATUS is used to easily identify the build from multiple output jars
-          STATUS=snapshot ./gradlew build -x test\
+          STATUS=snapshot ./gradlew build -x test
           cd ..
       - name: Get mapped Minecraft jar & library list
         run: |
