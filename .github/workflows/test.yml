@@ -18,7 +18,7 @@ jobs:
           java-version: '17'
       - name: Set up JQ
         run: |
-          sudo apt-get install jq
+          sudo apt-get install jq -y
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Clone MC Remapper
@@ -26,28 +26,37 @@ jobs:
         with:
           repository: HeartPattern/MC-Remapper
           path: remapper
+      - name: Build MC Remapper
+        run: |
+          cd remapper
+          ./gradlew installDist -x test
+          cd ..
       - name: Clone Vineflower
         uses: actions/checkout@v3
         with:
           repository: Vineflower/Vineflower
           ref: ${{ github.event.inputs.vf_branch }}
           path: vineflower
-      - name: Do everything else
+      - name: Build Vineflower
         run: |
-          cd remapper
-          ./gradlew installDist
-          export PATH=$PATH:$(pwd)/build/install/MC-Remapper/bin
-          cd ..
           cd vineflower
-          ./gradlew build
+          # Setting the STATUS is used to easily identify the build from multiple output jars
+          STATUS=snapshot ./gradlew build -x test\
           cd ..
+      - name: Get mapped Minecraft jar & library list
+        run: |
+          export PATH=$PATH:$(pwd)/remapper/build/install/MC-Remapper/bin
           curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -c '.versions[0]' > latest.json
           export MC_VERSION=$(jq -r '.id' latest.json)
           curl -s $(jq -r '.url' latest.json) > mcinfo.json
           cat mcinfo.json | jq -r '.libraries | map(select(.rules == null)) | map(.name) | join("\n")' > libraries.txt
           MC-Remapper client $MC_VERSION --output remapped.jar
+      - name: Decompile Minecraft
+        run: |
           mkdir -p gradle-project/src/main/java
-          java -jar vineflower/build/libs/vineflower-*+local.jar remapped.jar gradle-project/src/main/java
+          java -jar vineflower/build/libs/vineflower-*-SNAPSHOT.jar remapped.jar gradle-project/src/main/java
+      - name: Try to build
+        run: |
           cd gradle-project/
           chmod +x gradlew
           ./gradlew build --scan
